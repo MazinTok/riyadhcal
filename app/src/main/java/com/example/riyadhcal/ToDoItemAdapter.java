@@ -11,7 +11,7 @@ import android.widget.CheckBox;
 /**
  * Adapter to bind a ToDoItem List to a view
  */
-public class ToDoItemAdapter extends ArrayAdapter<ToDoItem> {
+public class ToDoItemAdapter extends ArrayAdapter<News> {
 
     /**
      * Adapter context
@@ -37,7 +37,7 @@ public class ToDoItemAdapter extends ArrayAdapter<ToDoItem> {
     public View getView(int position, View convertView, ViewGroup parent) {
         View row = convertView;
 
-        final ToDoItem currentItem = getItem(position);
+        final News currentItem = getItem(position);
 
         if (row == null) {
             LayoutInflater inflater = ((Activity) mContext).getLayoutInflater();
@@ -46,7 +46,7 @@ public class ToDoItemAdapter extends ArrayAdapter<ToDoItem> {
 
         row.setTag(currentItem);
         final CheckBox checkBox = (CheckBox) row.findViewById(R.id.checkToDoItem);
-        checkBox.setText(currentItem.getText());
+        checkBox.setText(currentItem.getTxt());
         checkBox.setChecked(false);
         checkBox.setEnabled(true);
 
