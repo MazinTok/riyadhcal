@@ -2,6 +2,7 @@ package com.example.riyadhcal;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -55,11 +56,10 @@ public class ToDoItemAdapter extends ArrayAdapter<News> {
             @Override
             public void onClick(View arg0) {
                 if (checkBox.isChecked()) {
-                    checkBox.setEnabled(false);
-                    if (mContext instanceof ToDoActivity) {
-                        ToDoActivity activity = (ToDoActivity) mContext;
-                        activity.checkItem(currentItem);
-                    }
+//                    ClassName details = new ClassName();
+                    Intent i = new Intent(getContext(), UpDateActivity.class);
+                    i.putExtra("Editing", currentItem);
+                    mContext.startActivity(i);
                 }
             }
         });

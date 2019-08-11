@@ -2,8 +2,14 @@ package com.example.riyadhcal;
 
 
 import android.app.Activity;
+import android.app.AlarmManager;
 import android.app.AlertDialog;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -14,14 +20,21 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
+import android.widget.Toast;
 
+import com.microsoft.windowsazure.mobileservices.MobileServiceException;
 import com.microsoft.windowsazure.mobileservices.table.sync.MobileServiceSyncContext;
 import com.microsoft.windowsazure.mobileservices.table.sync.localstore.ColumnDataType;
 import com.microsoft.windowsazure.mobileservices.table.sync.localstore.MobileServiceLocalStoreException;
 import com.microsoft.windowsazure.mobileservices.table.sync.localstore.SQLiteLocalStore;
 import com.microsoft.windowsazure.mobileservices.table.sync.synchandler.SimpleSyncHandler;
 
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -29,7 +42,12 @@ import java.util.concurrent.ExecutionException;
 import static com.microsoft.windowsazure.mobileservices.table.query.QueryOperations.val;
 
 public class ToDoActivity extends Activity {
+    private static final String TAG = "ToDoActivity";
 
+    PendingIntent myPendingIntent;
+    AlarmManager alarmManager;
+    BroadcastReceiver myBroadcastReceiver;
+    Calendar firingCal;
 
 
     MyApplication app;
@@ -48,6 +66,8 @@ public class ToDoActivity extends Activity {
      * EditText containing the "New To Do" text
      */
     private EditText mTextNewToDo;
+    private TextView mTextCountUpdate;
+    SharedPreferences prefs;
 
     /**
      * Progress spinner to use for table operations
@@ -61,8 +81,9 @@ public class ToDoActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_to_do);
+         prefs = getSharedPreferences("SHARED_PREFS_FILE", Context.MODE_PRIVATE);
 
-        app =((MyApplication)getApplicationContext());
+        app = ((MyApplication) getApplicationContext());
         mProgressBar = (ProgressBar) findViewById(R.id.loadingProgressBar);
 
         // Initialize the progress bar
@@ -89,7 +110,7 @@ public class ToDoActivity extends Activity {
 //                }
 //            });
 //
-                       // Get the Mobile Service Table instance to use
+            // Get the Mobile Service Table instance to use
 
 //            mToDoTable = mClient.getTable(ToDoItem.class);
 //            mNewsTable = mClient.getTable(News.class);
@@ -101,6 +122,11 @@ public class ToDoActivity extends Activity {
             initLocalStore().get();
 
             mTextNewToDo = (EditText) findViewById(R.id.textNewToDo);
+            mTextCountUpdate = (TextView) findViewById(R.id.textView);
+            if(prefs.contains("TASKS")){
+
+                mTextCountUpdate.setText(prefs.getString("TASKS", null));
+            }
 
             // Create an adapter to bind the items with the view
             mAdapter = new ToDoItemAdapter(this, R.layout.row_list_to_do);
@@ -108,9 +134,10 @@ public class ToDoActivity extends Activity {
             listViewToDo.setAdapter(mAdapter);
 
             // Load the items from the Mobile Service
-            refreshItemsFromTable();
-
-        } catch (Exception e){
+//            refreshItemsFromTable();
+//
+            refreshItemsInWS();
+        } catch (Exception e) {
             createAndShowDialog(e, "Error");
         }
     }
@@ -139,8 +166,7 @@ public class ToDoActivity extends Activity {
     /**
      * Mark an item as completed
      *
-     * @param item
-     *            The item to mark
+     * @param item The item to mark
      */
     public void checkItem(final News item) {
         if (app.mClient == null) {
@@ -179,8 +205,7 @@ public class ToDoActivity extends Activity {
     /**
      * Mark an item as completed in the Mobile Service Table
      *
-     * @param item
-     *            The item to mark
+     * @param item The item to mark
      */
     public void checkItemInTable(ToDoItem item) throws ExecutionException, InterruptedException {
         app.mToDoTable.update(item).get();
@@ -189,8 +214,7 @@ public class ToDoActivity extends Activity {
     /**
      * Add a new item
      *
-     * @param view
-     *            The view that originated the call
+     * @param view The view that originated the call
      */
     public void addItem(View view) {
 
@@ -200,13 +224,10 @@ public class ToDoActivity extends Activity {
 
     }
 
-
-
     /**
      * Add an item to the Mobile Service Table
      *
-     * @param item
-     *            The item to Add
+     * @param item The item to Add
      */
     public ToDoItem addItemInTable(ToDoItem item) throws ExecutionException, InterruptedException {
         ToDoItem entity = app.mToDoTable.insert(item).get();
@@ -249,14 +270,14 @@ public class ToDoActivity extends Activity {
 //                return null;
 //            }
 //        };
-        AsyncTask<Void, Void, Void> task2 = new AsyncTask<Void, Void, Void>(){
+        AsyncTask<Void, Void, Void> task2 = new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... params) {
 
                 try {
-
+                    mAdapter.clear();
                     final List<News> results2 = app.mNewsTable.execute().get();
-                    //Offline Sync
+                    //Offline
                     //final List<ToDoItem> results = refreshItemsFromMobileServiceTableSyncTable();
 
                     runOnUiThread(new Runnable() {
@@ -264,14 +285,14 @@ public class ToDoActivity extends Activity {
                         public void run() {
 
                             for (News item2 : results2) {
-                                Log.d("News",item2.getTxt());
+                                Log.d("News", item2.getTxt());
 
                                 mAdapter.add(item2);
 //
                             }
                         }
                     });
-                } catch (final Exception e){
+                } catch (final Exception e) {
                     createAndShowDialogFromTask(e, "Error");
                 }
 
@@ -282,6 +303,63 @@ public class ToDoActivity extends Activity {
 //        runAsyncTask(task);
         runAsyncTask(task2);
     }
+
+    /**
+     * Refresh the list with the items In WS
+     */
+    private void refreshItemsInWS() throws MobileServiceException {
+
+        firingCal = Calendar.getInstance();
+        // firingCal.set(,);
+        firingCal.set(Calendar.HOUR_OF_DAY, 0); // At the hour you want to fire the alarm
+        firingCal.set(Calendar.MINUTE, 0); // alarm minute
+        firingCal.set(Calendar.SECOND, 0); // and alarm second
+        long intendedTime = firingCal.getTimeInMillis();
+
+        registerMyAlarmBroadcast();
+        alarmManager.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP, intendedTime,AlarmManager.INTERVAL_DAY, myPendingIntent);
+
+    }
+
+
+    private void registerMyAlarmBroadcast() {
+        Log.i(TAG, "Going to register Intent.RegisterAlramBroadcast");
+
+        //This is the call back function(BroadcastReceiver) which will be call when your
+        //alarm time will reached.
+        myBroadcastReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                Log.i(TAG, "BroadcastReceiver::OnReceive()");
+                Toast.makeText(context, "Your Alarm is there", Toast.LENGTH_LONG).show();
+                upadteWS();
+            }
+        };
+
+        registerReceiver(myBroadcastReceiver, new IntentFilter("com.alarm.example"));
+        myPendingIntent = PendingIntent.getBroadcast(this, 0, new Intent("com.alarm.example"), 0);
+        alarmManager = (AlarmManager) (this.getSystemService(Context.ALARM_SERVICE));
+    }
+
+    private void UnregisterAlarmBroadcast() {
+        alarmManager.cancel(myPendingIntent);
+        getBaseContext().unregisterReceiver(myBroadcastReceiver);
+    }
+    @Override
+    protected void onDestroy() {
+        unregisterReceiver(myBroadcastReceiver);
+        super.onDestroy();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        // Load the items from the Mobile Service
+        refreshItemsFromTable();
+    }
+
+
 
     /**
      * Refresh the list with the items in the Mobile Service Table
@@ -308,6 +386,7 @@ public class ToDoActivity extends Activity {
 
     /**
      * Initialize local storage
+     *
      * @return
      * @throws MobileServiceLocalStoreException
      * @throws ExecutionException
@@ -376,10 +455,8 @@ public class ToDoActivity extends Activity {
     /**
      * Creates a dialog and shows it
      *
-     * @param exception
-     *            The exception to show in the dialog
-     * @param title
-     *            The dialog title
+     * @param exception The exception to show in the dialog
+     * @param title     The dialog title
      */
     private void createAndShowDialogFromTask(final Exception exception, String title) {
         runOnUiThread(new Runnable() {
@@ -394,14 +471,12 @@ public class ToDoActivity extends Activity {
     /**
      * Creates a dialog and shows it
      *
-     * @param exception
-     *            The exception to show in the dialog
-     * @param title
-     *            The dialog title
+     * @param exception The exception to show in the dialog
+     * @param title     The dialog title
      */
     private void createAndShowDialog(Exception exception, String title) {
         Throwable ex = exception;
-        if(exception.getCause() != null){
+        if (exception.getCause() != null) {
             ex = exception.getCause();
         }
         createAndShowDialog(ex.getMessage(), title);
@@ -410,10 +485,8 @@ public class ToDoActivity extends Activity {
     /**
      * Creates a dialog and shows it
      *
-     * @param message
-     *            The dialog message
-     * @param title
-     *            The dialog title
+     * @param message The dialog message
+     * @param title   The dialog title
      */
     private void createAndShowDialog(final String message, final String title) {
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -425,6 +498,7 @@ public class ToDoActivity extends Activity {
 
     /**
      * Run an ASync task on the corresponding executor
+     *
      * @param task
      * @return
      */
@@ -436,5 +510,80 @@ public class ToDoActivity extends Activity {
         }
     }
 
+    private void upadteWS() {
+        new LongOperation().execute("");
+    }
 
+    private class LongOperation extends AsyncTask<String, Void, String> {
+        @Override
+        protected String doInBackground(String... params) {
+            int j = 0;
+
+            ArrayList<News> results = new ArrayList<News>();
+            //ArrayList<News> resultFromRS = ne.HTMLRemoverParser(url);
+            app.CountUpdateLIve++;
+            SharedPreferences.Editor editor = prefs.edit();
+
+                String value = prefs.getString("TASKS", null);
+            int t;
+            if (value == null)
+            {
+                t=0;
+            }
+            else
+            {
+                t = Integer.valueOf(value)+1;
+            }
+              //  t = Integer.valueOf(value)+1;
+                editor.putString("TASKS",  Integer.toString(t));
+                editor.commit();
+
+
+
+            //adding events from service
+            try {
+                results = app.mNewsTable.where().field("live").
+                        eq(val(true)).execute().get();
+
+            } catch (final Exception e) {
+                runOnUiThread(new Runnable() {
+                    public void run() {
+
+                        Toast.makeText(ToDoActivity.this, "internet_error", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            Iterator<News> i = results.iterator();
+            while (i.hasNext()) {
+                News s = i.next(); // must be called before you can call i.remove()
+                // Do something
+                if (new Date().after(s.getEndDate())) {
+//                    results.remove(i);
+
+                    s.setLive(false);
+                    try {
+                        app.mNewsTable.update(s).get();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    } catch (ExecutionException e) {
+                        e.printStackTrace();
+                    }
+                    //   i.remove();
+                }
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+
+        }
+
+        protected void onPostExecute(String result) {
+            super.onPostExecute( result);
+
+        }
+    }
 }

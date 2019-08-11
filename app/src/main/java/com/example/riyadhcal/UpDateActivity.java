@@ -1,19 +1,22 @@
+
 package com.example.riyadhcal;
 
 import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.Switch;
-import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -33,13 +36,13 @@ import com.microsoft.windowsazure.mobileservices.http.NextServiceFilterCallback;
 import com.microsoft.windowsazure.mobileservices.http.ServiceFilter;
 import com.microsoft.windowsazure.mobileservices.http.ServiceFilterRequest;
 import com.microsoft.windowsazure.mobileservices.http.ServiceFilterResponse;
-import com.microsoft.windowsazure.mobileservices.table.TableOperationCallback;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
+import java.util.concurrent.ExecutionException;
 
-public class AddActivity extends AppCompatActivity {
+public class UpDateActivity extends AppCompatActivity {
     private int PICK_IMAGE_REQUEST = 1;
     public static final int GOOGLE_LOGIN_REQUEST_CODE = 2;
 
@@ -70,7 +73,21 @@ public class AddActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_add);
+        setContentView(R.layout.activity_up_date);
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+        mNews = (News) getIntent().getSerializableExtra("Editing");
+
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
+            }
+        });
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 //        getActionBar().setDisplayHomeAsUpEnabled(true);
 
         app  =((MyApplication)getApplicationContext());
@@ -86,17 +103,36 @@ public class AddActivity extends AppCompatActivity {
 //        edtlang = (EditText)findViewById(R.id.Edt_lang);
         btnAdd = (FloatingActionButton)findViewById(R.id.floatingActionButtonAdd);
 
-         onOffSwitch = (Switch)  findViewById(R.id.switch1);
+        onOffSwitch = (Switch)  findViewById(R.id.switch1);
 
-        mNews = new News();
-        mNews.setTxt("tital");
-        mNews.setContent("sdsd");
-        mNews.setPubDate("Thu, 02 Feb 2017 - Fri, 03 Feb 2017");
-        mNews.setImageURL("url");
-        mNews.setDetials("dddddd");
-        mNews.setLocation("mLocation");
-        mNews.setUrl("mLocation");
-        mNews.lang="ar";
+        edtTitle.setText(mNews.getTxt());
+        edtContent.setText(mNews.getContent());
+        edtPubDate.setText(mNews.getPubDate());
+        edtImageURL.setText(mNews.getImageURL());
+//        selectImage.setText(mNews.get());
+        edtDetials.setText(mNews.getDetials());
+        edtLocation.setText(mNews.getLocation());
+        edtUrl.setText(mNews.getUrl());
+//        edtlang = (EditText)findViewById(R.id.Edt_lang);
+        btnAdd = (FloatingActionButton)findViewById(R.id.floatingActionButtonAdd);
+
+//        onOffSwitch = (Switch)  findViewById(R.id.switch1);
+        if (mNews.lang.equals("en"))
+            onOffSwitch.setChecked(true);
+        else
+            onOffSwitch.setChecked(false);
+
+
+//
+//        mNews = new News();
+//        mNews.setTxt("tital");
+//        mNews.setContent("sdsd");
+//        mNews.setPubDate("Thu, 02 Feb 2017 - Fri, 03 Feb 2017");
+//        mNews.setImageURL("url");
+//        mNews.setDetials("dddddd");
+//        mNews.setLocation("mLocation");
+//        mNews.setUrl("mLocation");
+//        mNews.lang="ar";
 
 //        try {
 //
@@ -136,7 +172,7 @@ public class AddActivity extends AppCompatActivity {
             }
         });
 
-        btnAdd.setOnClickListener(new View.OnClickListener() {
+        fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 AddEvent();
@@ -158,7 +194,7 @@ public class AddActivity extends AppCompatActivity {
             }
 
         };
-       final DatePickerDialog.OnDateSetListener start_date = new DatePickerDialog.OnDateSetListener() {
+        final DatePickerDialog.OnDateSetListener start_date = new DatePickerDialog.OnDateSetListener() {
 
             @Override
             public void onDateSet(DatePicker view, int year, int monthOfYear,
@@ -170,7 +206,7 @@ public class AddActivity extends AppCompatActivity {
 
                 updateLabel(myCalendar);
                 formated_date +=" - ";
-                new DatePickerDialog(AddActivity.this, end_date, myCalendar
+                new DatePickerDialog(UpDateActivity.this, end_date, myCalendar
                         .get(Calendar.YEAR), myCalendar.get(Calendar.MONTH),
                         myCalendar.get(Calendar.DAY_OF_MONTH)).show();
             }
@@ -183,7 +219,7 @@ public class AddActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 // TODO Auto-generated method stub
-                new DatePickerDialog(AddActivity.this, start_date, myCalendar
+                new DatePickerDialog(UpDateActivity.this, start_date, myCalendar
                         .get(Calendar.YEAR), myCalendar.get(Calendar.MONTH),
                         myCalendar.get(Calendar.DAY_OF_MONTH)).show();
             }
@@ -217,29 +253,35 @@ public class AddActivity extends AppCompatActivity {
 
 //        "Thu, 02 Feb 2017 - Fri, 03 Feb 2017
         if (!TextUtils.isEmpty(edtTitle.getText()))
-        mNews.setTxt(edtTitle.getText().toString());
+            mNews.setTxt(edtTitle.getText().toString());
         if (!TextUtils.isEmpty(edtContent.getText()))
-        mNews.setContent(edtContent.getText().toString());
+            mNews.setContent(edtContent.getText().toString());
         if (!TextUtils.isEmpty(edtPubDate.getText()))
-        mNews.setPubDate(edtPubDate.getText().toString());
+            mNews.setPubDate(edtPubDate.getText().toString());
         if (!TextUtils.isEmpty(edtImageURL.getText()))
-        mNews.setImageURL(edtImageURL.getText().toString());
+            mNews.setImageURL(edtImageURL.getText().toString());
         if (!TextUtils.isEmpty(edtDetials.getText()))
-        mNews.setDetials(edtDetials.getText().toString());
+            mNews.setDetials(edtDetials.getText().toString());
         if (!TextUtils.isEmpty(edtLocation.getText()))
-        mNews.setLocation(edtLocation.getText().toString());
+            mNews.setLocation(edtLocation.getText().toString());
         if (!TextUtils.isEmpty(edtUrl.getText()))
-        mNews.setUrl(edtUrl.getText().toString());
+            mNews.setUrl(edtUrl.getText().toString());
 //        if (!TextUtils.isEmpty(edtlang.getText()))
 
         if (onOffSwitch.isChecked())
-        mNews.lang="en";
+            mNews.lang="en";
         else
-            mNews.lang="ar";
+            mNews.lang="qr";
 
 
-
-        azureInseart();
+        try {
+            azureInseart();
+            finish();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -322,31 +364,8 @@ public class AddActivity extends AppCompatActivity {
             }
         });
     }
-    public void azureInseart() {
-        if (app.mClient == null) {
-            return;
-        }
-
-        app.mNewsTable.insert(mNews, new TableOperationCallback<News>() {
-            public void onCompleted(News entity, Exception exception, ServiceFilterResponse response) {
-                if (exception == null) {
-                    // Insert succeeded
-                    finish();
-                } else {
-                    // Insert failed
-                    Toast.makeText(AddActivity.this,"error",Toast.LENGTH_SHORT).show();
-                }
-            }
-            public void onFailure(Throwable exception) {
-
-            }
-        });
-        // Create a new item
-        final ToDoItem item = new ToDoItem();
-
-        item.setText("dd");
-        item.setComplete(false);
-
+    public void azureInseart() throws ExecutionException, InterruptedException {
+        new LongOperation().execute("");
     }
 
     private void authenticate() {
@@ -379,12 +398,12 @@ public class AddActivity extends AppCompatActivity {
             return this.errorMessage;
         }
     }
-private class ProgressFilter implements ServiceFilter {
+    private class ProgressFilter implements ServiceFilter {
 
-    @Override
-    public ListenableFuture<ServiceFilterResponse> handleRequest(ServiceFilterRequest request, NextServiceFilterCallback nextServiceFilterCallback) {
+        @Override
+        public ListenableFuture<ServiceFilterResponse> handleRequest(ServiceFilterRequest request, NextServiceFilterCallback nextServiceFilterCallback) {
 
-        final SettableFuture<ServiceFilterResponse> resultFuture = SettableFuture.create();
+            final SettableFuture<ServiceFilterResponse> resultFuture = SettableFuture.create();
 
 //
 //            runOnUiThread(new Runnable() {
@@ -395,16 +414,16 @@ private class ProgressFilter implements ServiceFilter {
 //                }
 //            });
 
-        ListenableFuture<ServiceFilterResponse> future = nextServiceFilterCallback.onNext(request);
+            ListenableFuture<ServiceFilterResponse> future = nextServiceFilterCallback.onNext(request);
 
-        Futures.addCallback(future, new FutureCallback<ServiceFilterResponse>() {
-            @Override
-            public void onFailure(Throwable e) {
-                resultFuture.setException(e);
-            }
+            Futures.addCallback(future, new FutureCallback<ServiceFilterResponse>() {
+                @Override
+                public void onFailure(Throwable e) {
+                    resultFuture.setException(e);
+                }
 
-            @Override
-            public void onSuccess(ServiceFilterResponse response) {
+                @Override
+                public void onSuccess(ServiceFilterResponse response) {
 //                    runOnUiThread(new Runnable() {
 //
 //                        @Override
@@ -413,13 +432,43 @@ private class ProgressFilter implements ServiceFilter {
 //                        }
 //                    });
 
-                resultFuture.set(response);
-            }
-        });
+                    resultFuture.set(response);
+                }
+            });
 
-        return resultFuture;
+            return resultFuture;
+        }
+    }
+
+    private class LongOperation extends AsyncTask<String, Void, String> {
+        @Override
+        protected String doInBackground(String... params) {
+            if (app.mClient == null) {
+                return null;
+            }
+
+
+            try {
+                app.mNewsTable.update(mNews).get();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            }
+
+            return null;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+
+        }
+
+        protected void onPostExecute(String result) {
+            super.onPostExecute( result);
+            finish();
+        }
     }
 }
 
-
-}

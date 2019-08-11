@@ -56,10 +56,16 @@
     <ListView
         android:id="@+id/listViewToDo"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="154dp"
         tools:listitem="@layout/row_list_to_do"
         android:padding="6dip" >
 
     </ListView>
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="TextView" />
 
 </LinearLayout>

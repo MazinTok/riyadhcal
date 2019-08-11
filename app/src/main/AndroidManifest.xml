@@ -19,7 +19,6 @@
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/AppTheme">
-
         <activity
             android:name=".ToDoActivity"
             android:label="@string/app_name">
@@ -40,11 +39,23 @@
         <activity android:name="com.microsoft.windowsazure.mobileservices.authentication.RedirectUrlActivity">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
+
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="{RiyadhCal}"
-                    android:host="easyauth.callback"/>
+
+                <data
+                    android:host="easyauth.callback"
+                    android:scheme="{RiyadhCal}" />
             </intent-filter>
+        </activity>
+        <activity
+            android:name=".UpDateActivity"
+            android:label="@string/title_activity_up_date"
+            android:parentActivityName=".ToDoActivity"
+            android:theme="@style/AppTheme.NoActionBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.example.riyadhcal.ToDoActivity" />
         </activity>
     </application>
 

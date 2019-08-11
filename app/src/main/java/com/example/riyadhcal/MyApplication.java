@@ -26,7 +26,9 @@ import java.util.concurrent.TimeUnit;
 public class MyApplication extends Application {
 
     private String someVariable;
-//     MobileServiceClient mClient;
+    public int CountUpdateLIve;
+
+    //     MobileServiceClient mClient;
     private static MyApplication application;
 
     /**
@@ -49,7 +51,7 @@ public class MyApplication extends Application {
         super.onCreate();
         application = this;
 //        application.initialize();
-
+        CountUpdateLIve =0;
 
         try {
 
